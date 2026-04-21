@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debt Sustainability Risk Classifier</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        darkTheme: '#0B0F19',
+                        glassBg: 'rgba(255, 255, 255, 0.05)',
+                        glassBorder: 'rgba(255, 255, 255, 0.1)',
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Phosphor Icons -->
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0b1120;
+            background-image: 
+                radial-gradient(circle at 15% 50%, rgba(99, 102, 241, 0.15), transparent 25%),
+                radial-gradient(circle at 85% 30%, rgba(168, 85, 247, 0.15), transparent 25%);
+            color: #f8fafc;
+            min-height: 100vh;
+        }
+        .glass-card {
+            background: rgba(30, 41, 59, 0.4);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+        }
+        .gradient-text {
+            background: linear-gradient(135deg, #818cf8, #c084fc);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        .loading-spinner {
+            display: none;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255,255,255,.3);
+            border-radius: 50%;
+            border-top-color: #fff;
+            animation: spin 1s ease-in-out infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Result Colors */
+        .result-low { color: #34d399; text-shadow: 0 0 10px rgba(52, 211, 153, 0.5); }
+        .result-medium { color: #fbbf24; text-shadow: 0 0 10px rgba(251, 191, 36, 0.5); }
+        .result-high { color: #ef4444; text-shadow: 0 0 10px rgba(239, 68, 68, 0.5); }
+    </style>
+</head>
+<body class="antialiased overflow-x-hidden relative selection:bg-indigo-500/30">
+
+    <!-- Navbar -->
+    <nav class="fixed w-full z-50 glass-card border-b border-t-0 border-l-0 border-r-0">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                <div class="flex items-center gap-2">
+                    <i class="ph-fill ph-globe-hemisphere-west text-2xl text-indigo-400"></i>
+                    <span class="font-bold text-xl tracking-tight">Eco<span class="text-indigo-400">Sight</span></span>
+                </div>
+                <div>
+                    <a href="#predict" class="text-sm font-medium transition-colors hover:text-indigo-300">Submit Data</a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="pt-24 pb-16">
+        
+        <!-- Hero Section -->
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center pt-16 pb-12">
+            <h1 class="text-5xl md:text-7xl font-extrabold tracking-tight mb-6">
+                AI-Powered <br class="hidden md:block" />
+                <span class="gradient-text">Debt Risk Analysis</span>
+            </h1>
+            <p class="mt-4 max-w-2xl text-lg md:text-xl text-slate-300 mx-auto mb-10 leading-relaxed">
+                Predict sovereign debt distress using macroeconomic data. This system analyzes GDP growth, inflation, and debt levels to classify countries into Low, Medium, or High risk categories.
+            </p>
+            <div class="flex justify-center gap-4">
+                <a href="#predict" class="inline-flex items-center justify-center px-8 py-3.5 border border-transparent text-base font-medium rounded-full text-white bg-indigo-600 hover:bg-indigo-500 shadow-[0_0_20px_rgba(79,70,229,0.3)] transition-all transform hover:-translate-y-0.5">
+                    Start Analysis
+                    <i class="ph-bold ph-arrow-right ml-2"></i>
+                </a>
+                <a href="#how-it-works" class="inline-flex items-center justify-center px-8 py-3.5 border border-slate-600 text-base font-medium rounded-full text-slate-200 hover:bg-slate-800 transition-all">
+                    Learn More
+                </a>
+            </div>
+        </div>
+
+        <!-- How It Works & Stats grid -->
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-16" id="how-it-works">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-12">
+                
+                <!-- How It Works Section -->
+                <div>
+                    <h2 class="text-2xl font-bold mb-6 text-white flex items-center gap-2">
+                        <i class="ph-fill ph-lightbulb text-indigo-400"></i>
+                        How It Works
+                    </h2>
+                    <div class="space-y-6">
+                        <div class="glass-card p-6 rounded-2xl flex items-start gap-4 transition-transform hover:-translate-y-1">
+                            <div class="flex-shrink-0 w-12 h-12 rounded-full bg-indigo-500/20 flex items-center justify-center border border-indigo-500/30 text-indigo-400 font-bold text-lg">1</div>
+                            <div>
+                                <h3 class="text-lg font-semibold text-white">Input Economic Indicators</h3>
+                                <p class="text-slate-400 mt-1 text-sm">Provide key metrics like GDP growth, inflation rate, prevailing debt levels, and population size.</p>
+                            </div>
+                        </div>
+                        <div class="glass-card p-6 rounded-2xl flex items-start gap-4 transition-transform hover:-translate-y-1">
+                            <div class="flex-shrink-0 w-12 h-12 rounded-full bg-fuchsia-500/20 flex items-center justify-center border border-fuchsia-500/30 text-fuchsia-400 font-bold text-lg">2</div>
+                            <div>
+                                <h3 class="text-lg font-semibold text-white">Model Processes Data</h3>
+                                <p class="text-slate-400 mt-1 text-sm">Our Random Forest machine learning model evaluates the complex interactions between these economic variables.</p>
+                            </div>
+                        </div>
+                        <div class="glass-card p-6 rounded-2xl flex items-start gap-4 transition-transform hover:-translate-y-1">
+                            <div class="flex-shrink-0 w-12 h-12 rounded-full bg-emerald-500/20 flex items-center justify-center border border-emerald-500/30 text-emerald-400 font-bold text-lg">3</div>
+                            <div>
+                                <h3 class="text-lg font-semibold text-white">Risk Classification Output</h3>
+                                <p class="text-slate-400 mt-1 text-sm">Receive an immediate classification of the country's sovereign debt sustainability risk.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Live Stats Section -->
+                <div>
+                    <h2 class="text-2xl font-bold mb-6 text-white flex items-center gap-2">
+                        <i class="ph-fill ph-chart-bar text-indigo-400"></i>
+                        System Stats
+                    </h2>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div class="glass-card p-6 rounded-2xl flex flex-col justify-between">
+                            <div>
+                                <div class="text-indigo-400 mb-2"><i class="ph ph-globe text-3xl"></i></div>
+                                <div class="text-3xl font-bold text-white mb-1">150+</div>
+                                <div class="text-sm text-slate-400 font-medium">Countries Analyzed</div>
+                            </div>
+                        </div>
+                        <div class="glass-card p-6 rounded-2xl flex flex-col justify-between">
+                            <div>
+                                <div class="text-fuchsia-400 mb-2"><i class="ph ph-database text-3xl"></i></div>
+                                <div class="text-3xl font-bold text-white mb-1">4</div>
+                                <div class="text-sm text-slate-400 font-medium">Core Macro Features</div>
+                            </div>
+                        </div>
+                        <div class="glass-card p-6 rounded-2xl flex flex-col justify-between">
+                            <div>
+                                <div class="text-emerald-400 mb-2"><i class="ph ph-brain text-3xl"></i></div>
+                                <div class="text-3xl font-bold text-white mb-1 tracking-tight">RF Model</div>
+                                <div class="text-sm text-slate-400 font-medium">Random Forest</div>
+                            </div>
+                        </div>
+                        <div class="glass-card p-6 rounded-2xl flex flex-col justify-between">
+                            <div>
+                                <div class="text-amber-400 mb-2"><i class="ph ph-trend-up text-3xl"></i></div>
+                                <!-- Mock chart inline SVG -->
+                                <svg class="h-10 w-full text-amber-500/50" viewBox="0 0 100 30" preserveAspectRatio="none">
+                                    <path d="M0,30 L10,25 L20,28 L30,20 L40,24 L50,15 L60,18 L70,10 L80,12 L90,5 L100,0 L100,30 Z" fill="currentColor"></path>
+                                </svg>
+                                <div class="text-sm text-slate-400 font-medium mt-2">Historical Debt Trends</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Prediction Dashboard -->
+        <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 mt-24" id="predict">
+            <div class="text-center mb-10">
+                <h2 class="text-3xl font-bold text-white mb-4">Run Prediction</h2>
+                <p class="text-slate-400 mb-8">Enter local macro indicators to instantly evaluate debt sustainability risks.</p>
+            </div>
+
+            <div class="glass-card rounded-3xl p-8 lg:p-12 relative overflow-hidden">
+                <!-- Background decor -->
+                <div class="absolute top-[-50px] right-[-50px] w-40 h-40 bg-indigo-600 rounded-full blur-[80px] opacity-20 pointer-events-none"></div>
+                <div class="absolute bottom-[-50px] left-[-50px] w-40 h-40 bg-fuchsia-600 rounded-full blur-[80px] opacity-20 pointer-events-none"></div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-12 relative z-10">
+                    <!-- Form -->
+                    <div>
+                        <form method="POST" action="/#predict" id="predictionForm" onsubmit="loadSpinner()">
+                            <!-- Quick Fill Buttons -->
+                            <div class="mb-6">
+                                <label class="block text-sm font-medium text-slate-300 mb-2">Quick Fill Data</label>
+                                <div class="flex flex-wrap gap-2">
+                                    <button type="button" onclick="fillForm(6, 4, 50, 1)" class="px-3 py-1.5 text-xs font-semibold rounded-lg bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 hover:bg-indigo-500/40 transition-colors" title="GDP: 6%, Inflation: 4%, Debt: 50%, Pop: 1M">Dataset 1</button>
+                                    <button type="button" onclick="fillForm(2, 8, 70, 5)" class="px-3 py-1.5 text-xs font-semibold rounded-lg bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 hover:bg-indigo-500/40 transition-colors" title="GDP: 2%, Inflation: 8%, Debt: 70%, Pop: 5M">Dataset 2</button>
+                                    <button type="button" onclick="fillForm(-1, 10, 120, 10)" class="px-3 py-1.5 text-xs font-semibold rounded-lg bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 hover:bg-indigo-500/40 transition-colors" title="GDP: -1%, Inflation: 10%, Debt: 120%, Pop: 10M">Dataset 3</button>
+                                    <button type="button" onclick="fillForm(4, 3, 30, 0.5)" class="px-3 py-1.5 text-xs font-semibold rounded-lg bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 hover:bg-indigo-500/40 transition-colors" title="GDP: 4%, Inflation: 3%, Debt: 30%, Pop: 0.5M">Dataset 4</button>
+                                    <button type="button" onclick="fillForm(0, 12, 95, 2)" class="px-3 py-1.5 text-xs font-semibold rounded-lg bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 hover:bg-indigo-500/40 transition-colors" title="GDP: 0%, Inflation: 12%, Debt: 95%, Pop: 2M">Dataset 5</button>
+                                    <button type="button" onclick="fillForm(3, 5, 80, 3)" class="px-3 py-1.5 text-xs font-semibold rounded-lg bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 hover:bg-indigo-500/40 transition-colors" title="GDP: 3%, Inflation: 5%, Debt: 80%, Pop: 3M">Dataset 6</button>
+                                </div>
+                            </div>
+
+                            <div class="space-y-6">
+                                <div>
+                                    <label for="gdp" class="block text-sm font-medium text-slate-300 mb-2">GDP Growth (%)</label>
+                                    <div class="relative">
+                                        <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                                            <i class="ph ph-chart-line-up text-slate-400 text-lg"></i>
+                                        </div>
+                                        <input type="number" step="any" name="gdp" id="gdp" required class="block w-full pl-12 pr-4 py-3.5 border border-slate-600 rounded-xl bg-slate-800/50 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all sm:text-sm" placeholder="e.g. 5.1">
+                                    </div>
+                                </div>
+                                
+                                <div>
+                                    <label for="inflation" class="block text-sm font-medium text-slate-300 mb-2">Inflation (%)</label>
+                                    <div class="relative">
+                                        <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                                            <i class="ph ph-coins text-slate-400 text-lg"></i>
+                                        </div>
+                                        <input type="number" step="any" name="inflation" id="inflation" required class="block w-full pl-12 pr-4 py-3.5 border border-slate-600 rounded-xl bg-slate-800/50 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all sm:text-sm" placeholder="e.g. 2.5">
+                                    </div>
+                                </div>
+                                
+                                <div>
+                                    <label for="debt" class="block text-sm font-medium text-slate-300 mb-2">Debt (% of GDP)</label>
+                                    <div class="relative">
+                                        <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                                            <i class="ph ph-bank text-slate-400 text-lg"></i>
+                                        </div>
+                                        <input type="number" step="any" name="debt" id="debt" required class="block w-full pl-12 pr-4 py-3.5 border border-slate-600 rounded-xl bg-slate-800/50 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all sm:text-sm" placeholder="e.g. 60.0">
+                                    </div>
+                                </div>
+                                
+                                <div>
+                                    <label for="population" class="block text-sm font-medium text-slate-300 mb-2">Population (Millions)</label>
+                                    <div class="relative">
+                                        <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                                            <i class="ph ph-users text-slate-400 text-lg"></i>
+                                        </div>
+                                        <input type="number" step="any" name="population" id="population" required class="block w-full pl-12 pr-4 py-3.5 border border-slate-600 rounded-xl bg-slate-800/50 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all sm:text-sm" placeholder="e.g. 10.5">
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="mt-8">
+                                <button type="submit" id="submitBtn" class="w-full flex items-center justify-center gap-3 py-4 px-4 border border-transparent rounded-xl shadow-sm text-base font-bold text-white bg-indigo-600 hover:bg-indigo-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 focus:ring-indigo-500 transition-all">
+                                    <span id="btnText">Evaluate Risk</span>
+                                    <div class="loading-spinner" id="spinner"></div>
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+
+                    <!-- Result Panel -->
+                    <div class="flex flex-col justify-center border-t md:border-t-0 md:border-l border-slate-700/50 pt-8 md:pt-0 md:pl-12">
+                        <div class="text-center w-full">
+                            <h3 class="text-sm font-bold text-slate-400 uppercase tracking-widest mb-6">Analysis Result</h3>
+                            
+                            {% if prediction %}
+                                <div class="p-8 rounded-2xl glass-card inline-block min-w-full">
+                                    {% if prediction == 'Low' %}
+                                        <div class="text-4xl lg:text-5xl font-extrabold result-low mb-6 flex justify-center items-center gap-3">
+                                            <i class="ph-fill ph-check-circle"></i> LOW RISK
+                                        </div>
+                                    {% elif prediction == 'Medium' %}
+                                        <div class="text-4xl lg:text-5xl font-extrabold result-medium mb-6 flex justify-center items-center gap-3">
+                                            <i class="ph-fill ph-warning"></i> MEDIUM RISK
+                                        </div>
+                                    {% elif prediction == 'High' %}
+                                        <div class="text-4xl lg:text-5xl font-extrabold result-high mb-6 flex justify-center items-center gap-3">
+                                            <i class="ph-fill ph-siren"></i> HIGH RISK
+                                        </div>
+                                    {% else %}
+                                        <div class="text-3xl font-extrabold text-slate-300 mb-6">
+                                            {{ prediction }}
+                                        </div>
+                                    {% endif %}
+                                    <p class="text-base text-slate-300 mt-4 leading-relaxed px-2">
+                                        {% if prediction == 'High' %}
+                                            High risk indicates potential debt distress due to high debt burden relative to economic output. Urgent policy adjustments may be necessary.
+                                        {% elif prediction == 'Medium' %}
+                                            Medium risk indicates vulnerability to economic shocks. Careful monitoring and prudent fiscal management are advised.
+                                        {% elif prediction == 'Low' %}
+                                            Low risk indicates a sustainable debt trajectory given the current macroeconomic indicators and economic growth projections.
+                                        {% else %}
+                                            Please check your inputs and try again.
+                                        {% endif %}
+                                    </p>
+                                </div>
+                            {% else %}
+                                <div class="p-10 border border-dashed border-slate-600 rounded-2xl bg-slate-800/20">
+                                    <i class="ph-duotone ph-chart-pie-slice text-6xl text-slate-500 mb-4 mx-auto"></i>
+                                    <p class="text-slate-400 text-lg">Awaiting your data to synthesize risk profile.</p>
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="border-t border-white/10 mt-24 glass-card relative z-10 rounded-none bg-slate-900/50 py-8">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row justify-between items-center gap-6">
+            <div class="flex items-center gap-2">
+                <i class="ph-fill ph-globe-hemisphere-west text-2xl text-indigo-400"></i>
+                <span class="font-bold text-lg tracking-tight text-white">EcoSight</span>
+            </div>
+            <p class="text-slate-400 text-sm font-medium">
+                Built using ML + World Bank Data
+            </p>
+            <div class="flex space-x-6 text-slate-400">
+                <a href="#" class="hover:text-white transition-colors"><i class="ph-fill ph-github-logo text-2xl"></i></a>
+                <a href="#" class="hover:text-white transition-colors"><i class="ph-fill ph-twitter-logo text-2xl"></i></a>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        function fillForm(gdp, inflation, debt, population) {
+            document.getElementById('gdp').value = gdp;
+            document.getElementById('inflation').value = inflation;
+            document.getElementById('debt').value = debt;
+            document.getElementById('population').value = population;
+        }
+
+        function loadSpinner() {
+            document.getElementById('btnText').textContent = 'Analyzing...';
+            document.getElementById('spinner').style.display = 'block';
+        }
+
+        // Scroll down automatically if a prediction is present
+        window.onload = function() {
+            const hasPrediction = {{ 'true' if prediction else 'false' }};
+            if (hasPrediction) {
+                // Short delay to ensure rendering matches
+                setTimeout(() => {
+                    document.getElementById('predict').scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }, 100);
+            }
+        };
+    </script>
+</body>
+</html>
