@@ -54,7 +54,6 @@ comparison.
 - Jupyter Notebook
 
 ## 📁 Project Structure
-
 ```text
 debt_risk/
 │
@@ -64,7 +63,7 @@ debt_risk/
 ├── src/              # Source code
 ├── requirements.txt  # Project dependencies
 └── README.md         # Project documentation
-
+```
 ## 🔄 Project Workflow
 
 The project follows these main steps:
@@ -87,6 +86,7 @@ Model Training
 Model Evaluation
        ↓
 Debt Risk Prediction
+```
 
 ## 📈 Model Evaluation
 
