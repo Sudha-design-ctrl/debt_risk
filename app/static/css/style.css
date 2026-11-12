@@ -1,0 +1,332 @@
+/*
+ * style.css — EcoSight Dark Theme
+ * Overrides and extends Bootstrap 5 with a premium dark glassmorphism UI.
+ * Imported in base.html after Bootstrap CSS.
+ */
+
+/* ── Google Fonts ──────────────────────────────────────────────────── */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+
+/* ── CSS Variables ─────────────────────────────────────────────────── */
+:root {
+  --bg:          #080d18;
+  --surface:     rgba(17, 24, 39, 0.75);
+  --surface2:    rgba(30, 41, 59, 0.6);
+  --border:      rgba(255, 255, 255, 0.08);
+  --accent:      #6366f1;
+  --accent-glow: rgba(99, 102, 241, 0.35);
+  --accent2:     #a855f7;
+  --low:         #34d399;
+  --medium:      #fbbf24;
+  --high:        #ef4444;
+  --text:        #f1f5f9;
+  --muted:       #94a3b8;
+  --radius:      14px;
+  --radius-sm:   8px;
+  --transition:  all 0.22s ease;
+}
+
+/* ── Base reset ─────────────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; }
+
+html { scroll-behavior: smooth; }
+
+body {
+  font-family: 'Inter', sans-serif;
+  background-color: var(--bg);
+  background-image:
+    radial-gradient(circle at 12% 20%, rgba(99,102,241,0.18) 0%, transparent 42%),
+    radial-gradient(circle at 88% 75%, rgba(168,85,247,0.14) 0%, transparent 42%);
+  color: var(--text);
+  min-height: 100vh;
+}
+
+/* ── Scrollbar ─────────────────────────────────────────────────────── */
+::-webkit-scrollbar            { width: 6px; height: 6px; }
+::-webkit-scrollbar-track      { background: transparent; }
+::-webkit-scrollbar-thumb      { background: rgba(255,255,255,0.12); border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover{ background: rgba(255,255,255,0.22); }
+
+/* ── Navbar ─────────────────────────────────────────────────────────── */
+.navbar {
+  background: rgba(8,13,24,0.88) !important;
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-bottom: 1px solid var(--border);
+  padding: 12px 0;
+}
+.navbar-brand {
+  font-size: 1.25rem;
+  font-weight: 800;
+  letter-spacing: -0.5px;
+  color: var(--text) !important;
+}
+.navbar-brand span { color: var(--accent); }
+.nav-link {
+  color: var(--muted) !important;
+  font-size: 0.875rem;
+  font-weight: 500;
+  padding: 6px 14px !important;
+  border-radius: var(--radius-sm);
+  transition: var(--transition);
+}
+.nav-link:hover, .nav-link.active {
+  color: var(--text) !important;
+  background: rgba(99,102,241,0.15);
+}
+.nav-link.active { color: #818cf8 !important; }
+
+/* ── Glass card ─────────────────────────────────────────────────────── */
+.glass-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  transition: var(--transition);
+}
+.glass-card:hover { box-shadow: 0 8px 32px rgba(0,0,0,0.28); }
+
+/* ── Section headings ───────────────────────────────────────────────── */
+.section-title {
+  font-size: 1.1rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 1rem;
+  color: var(--text);
+}
+.section-title i { color: var(--accent); font-size: 1.2rem; }
+
+/* ── Gradient text ──────────────────────────────────────────────────── */
+.gradient-text {
+  background: linear-gradient(135deg, #818cf8, #c084fc);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* ── Form controls ──────────────────────────────────────────────────── */
+.form-control, .form-select {
+  background: rgba(15, 23, 42, 0.7) !important;
+  border: 1px solid rgba(255,255,255,0.12) !important;
+  color: var(--text) !important;
+  border-radius: var(--radius-sm) !important;
+  padding: 0.65rem 1rem;
+  font-family: 'Inter', sans-serif;
+  transition: var(--transition);
+}
+.form-control::placeholder { color: var(--muted) !important; }
+.form-control:focus, .form-select:focus {
+  border-color: var(--accent) !important;
+  box-shadow: 0 0 0 3px var(--accent-glow) !important;
+  outline: none;
+}
+.form-label {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--muted);
+  margin-bottom: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.input-group-text {
+  background: rgba(15,23,42,0.7) !important;
+  border: 1px solid rgba(255,255,255,0.12) !important;
+  color: var(--muted) !important;
+}
+
+/* ── Buttons ────────────────────────────────────────────────────────── */
+.btn-accent {
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  border: none;
+  color: #fff;
+  font-weight: 700;
+  padding: 0.7rem 1.8rem;
+  border-radius: 50px;
+  font-family: 'Inter', sans-serif;
+  box-shadow: 0 0 20px var(--accent-glow);
+  transition: var(--transition);
+}
+.btn-accent:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 0 30px rgba(99,102,241,0.5);
+  color: #fff;
+}
+.btn-outline-accent {
+  border: 1px solid var(--accent);
+  color: var(--accent);
+  background: transparent;
+  font-weight: 600;
+  padding: 0.5rem 1.2rem;
+  border-radius: 50px;
+  font-family: 'Inter', sans-serif;
+  transition: var(--transition);
+}
+.btn-outline-accent:hover {
+  background: var(--accent);
+  color: #fff;
+  box-shadow: 0 0 16px var(--accent-glow);
+}
+
+/* ── KPI Cards ──────────────────────────────────────────────────────── */
+.kpi-card {
+  padding: 1.4rem;
+  position: relative;
+  overflow: hidden;
+}
+.kpi-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(99,102,241,0.06), transparent);
+  pointer-events: none;
+  border-radius: inherit;
+}
+.kpi-icon  { font-size: 1.6rem; margin-bottom: 0.6rem; }
+.kpi-value { font-size: 1.9rem; font-weight: 800; line-height: 1; margin-bottom: 4px; }
+.kpi-label { font-size: 0.775rem; color: var(--muted); font-weight: 600;
+             text-transform: uppercase; letter-spacing: 0.5px; }
+
+/* ── Risk Gauge ─────────────────────────────────────────────────────── */
+.gauge-container {
+  position: relative;
+  width: 180px;
+  height: 180px;
+  margin: 0 auto;
+}
+.gauge-svg { width: 100%; height: 100%; transform: rotate(-90deg); }
+.gauge-bg  { fill: none; stroke: rgba(255,255,255,0.07); stroke-width: 12;
+             stroke-linecap: round; }
+.gauge-fill{ fill: none; stroke-width: 12; stroke-linecap: round;
+             transition: stroke-dashoffset 1.2s cubic-bezier(0.4,0,0.2,1);
+             stroke-dasharray: 440; stroke-dashoffset: 440; }
+.gauge-text {
+  position: absolute; inset: 0;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+}
+.gauge-score { font-size: 2.2rem; font-weight: 800; line-height: 1; }
+.gauge-label { font-size: 0.7rem; color: var(--muted); font-weight: 600;
+               text-transform: uppercase; letter-spacing: 1px; margin-top: 2px; }
+
+/* ── Probability bars ───────────────────────────────────────────────── */
+.prob-bar-wrap { margin-bottom: 10px; }
+.prob-label    { display: flex; justify-content: space-between;
+                 font-size: 0.8125rem; font-weight: 600; margin-bottom: 4px; }
+.prob-track    { height: 8px; background: rgba(255,255,255,0.07);
+                 border-radius: 20px; overflow: hidden; }
+.prob-fill     { height: 100%; border-radius: 20px; transition: width 1s ease; width: 0; }
+
+/* ── XAI bars ───────────────────────────────────────────────────────── */
+.xai-item      { margin-bottom: 12px; }
+.xai-header    { display: flex; justify-content: space-between;
+                 font-size: 0.8125rem; font-weight: 600; margin-bottom: 4px; }
+.xai-track     { height: 10px; background: rgba(255,255,255,0.07);
+                 border-radius: 20px; overflow: hidden; }
+.xai-fill      { height: 100%; border-radius: 20px;
+                 transition: width 0.9s cubic-bezier(0.4,0,0.2,1); width: 0; }
+.xai-direction { font-size: 0.72rem; margin-top: 3px; font-weight: 500; }
+
+/* ── Risk pill badges ───────────────────────────────────────────────── */
+.risk-pill        { display: inline-flex; align-items: center; gap: 5px;
+                    padding: 3px 10px; border-radius: 20px;
+                    font-size: 0.72rem; font-weight: 700; }
+.risk-pill.low    { background: rgba(52,211,153,0.15);  color: var(--low);    }
+.risk-pill.medium { background: rgba(251,191,36,0.15);  color: var(--medium); }
+.risk-pill.high   { background: rgba(239,68,68,0.15);   color: var(--high);   }
+
+/* ── Tables ─────────────────────────────────────────────────────────── */
+.table-dark-custom {
+  --bs-table-bg:          transparent;
+  --bs-table-striped-bg:  rgba(255,255,255,0.025);
+  --bs-table-hover-bg:    rgba(255,255,255,0.045);
+  --bs-table-color:       var(--text);
+  --bs-table-border-color:rgba(255,255,255,0.07);
+  font-size: 0.85rem;
+}
+.table-dark-custom thead th {
+  font-size: 0.73rem; font-weight: 700;
+  color: var(--muted); text-transform: uppercase;
+  letter-spacing: 0.6px; padding: 10px 14px;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+}
+.table-dark-custom tbody td { padding: 10px 14px; vertical-align: middle; }
+
+/* ── Drag-and-drop upload zone ──────────────────────────────────────── */
+.upload-zone {
+  border: 2px dashed rgba(99,102,241,0.4);
+  border-radius: var(--radius);
+  padding: 3rem 2rem;
+  text-align: center;
+  transition: var(--transition);
+  cursor: pointer;
+  background: rgba(99,102,241,0.04);
+}
+.upload-zone:hover, .upload-zone.drag-over {
+  border-color: var(--accent);
+  background: rgba(99,102,241,0.1);
+}
+.upload-zone i { font-size: 3rem; color: var(--accent); margin-bottom: 1rem; }
+
+/* ── Quick-fill buttons ─────────────────────────────────────────────── */
+.quick-fill-btn {
+  padding: 4px 12px; font-size: 0.75rem; font-weight: 600;
+  border-radius: 6px; border: 1px solid rgba(99,102,241,0.3);
+  background: rgba(99,102,241,0.12); color: #818cf8;
+  cursor: pointer; transition: var(--transition); font-family: inherit;
+}
+.quick-fill-btn:hover {
+  background: rgba(99,102,241,0.28); border-color: var(--accent);
+}
+
+/* ── Skeleton loader ────────────────────────────────────────────────── */
+.skeleton {
+  background: linear-gradient(90deg,
+    rgba(255,255,255,0.04) 25%,
+    rgba(255,255,255,0.09) 50%,
+    rgba(255,255,255,0.04) 75%);
+  background-size: 400% 100%;
+  animation: shimmer 1.4s infinite;
+  border-radius: 8px;
+}
+@keyframes shimmer { 0% { background-position: 100% 0; } 100% { background-position: -100% 0; } }
+
+/* ── Recommendation cards ───────────────────────────────────────────── */
+.rec-action-item {
+  display: flex; gap: 10px;
+  padding: 8px 0;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+  font-size: 0.875rem; line-height: 1.55;
+}
+.rec-action-item:last-child { border-bottom: none; }
+.rec-bullet { flex-shrink: 0; width: 6px; height: 6px; border-radius: 50%;
+              margin-top: 7px; background: var(--accent); }
+
+/* ── Alert overrides ────────────────────────────────────────────────── */
+.alert {
+  border-radius: var(--radius-sm);
+  border: none;
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+.alert-success { background: rgba(52,211,153,0.12);  color: var(--low);    border-left: 3px solid var(--low);    }
+.alert-warning { background: rgba(251,191,36,0.12);  color: var(--medium); border-left: 3px solid var(--medium); }
+.alert-danger  { background: rgba(239,68,68,0.12);   color: var(--high);   border-left: 3px solid var(--high);   }
+.alert-info    { background: rgba(99,102,241,0.12);  color: #818cf8;       border-left: 3px solid var(--accent); }
+
+/* ── Chart containers ───────────────────────────────────────────────── */
+.chart-wrap { position: relative; }
+canvas       { max-height: 280px; }
+
+/* ── Page transitions ───────────────────────────────────────────────── */
+.fade-in { animation: fadeIn 0.4s ease; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+/* ── Responsive helpers ─────────────────────────────────────────────── */
+@media (max-width: 768px) {
+  .kpi-value { font-size: 1.5rem; }
+  .gauge-container { width: 150px; height: 150px; }
+  .gauge-score { font-size: 1.8rem; }
+}

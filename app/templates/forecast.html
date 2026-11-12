@@ -1,0 +1,297 @@
+{% extends "base.html" %}
+{% block title %}EcoSight — Debt Risk Forecasting{% endblock %}
+{% block meta_desc %}Forecast future sovereign debt risk using AI-powered polynomial regression on historical IMF data.{% endblock %}
+
+{% block content %}
+<div class="container-xl py-4">
+
+  <!-- Header -->
+  <div class="mb-4">
+    <h1 class="fw-bold mb-1" style="font-size:1.5rem;">
+      <i class="bi bi-graph-up-arrow me-2" style="color:var(--accent);"></i>Debt Risk Forecasting
+    </h1>
+    <p style="color:var(--muted);font-size:.9rem;">
+      Select a country to project Debt/GDP for up to 10 years ahead using polynomial regression on historical IMF data.
+    </p>
+  </div>
+
+  <!-- Controls -->
+  <div class="glass-card p-4 mb-4">
+    <div class="row g-3 align-items-end">
+      <div class="col-md-5">
+        <label class="form-label">Country</label>
+        <select id="forecastCountry" class="form-select">
+          <option value="">— Select a country —</option>
+          {% for c in countries %}
+          <option value="{{ c }}">{{ c }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-3">
+        <label class="form-label">Years to Forecast: <strong id="yearsLabel">5</strong></label>
+        <input type="range" id="yearsRange" min="2" max="10" value="5" step="1"
+               class="form-range" oninput="document.getElementById('yearsLabel').textContent=this.value"
+               style="accent-color:var(--accent);"/>
+      </div>
+      <div class="col-md-4">
+        <button class="btn btn-accent w-100 py-3" onclick="runForecast()" id="forecastBtn">
+          <i class="bi bi-magic me-2"></i>Generate Forecast
+        </button>
+      </div>
+    </div>
+
+    <!-- Quick country presets -->
+    <div class="mt-3 d-flex flex-wrap gap-2">
+      <span style="font-size:.78rem;color:var(--muted);font-weight:600;align-self:center;">Quick select:</span>
+      {% for c in ["Greece","Japan","Italy","Brazil","India","United States"] %}
+      <button class="quick-fill-btn" onclick="setCountry('{{ c }}')">{{ c }}</button>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- Error -->
+  <div id="forecastError" class="alert alert-danger d-none mb-3"></div>
+
+  <!-- Loading spinner -->
+  <div id="forecastLoading" class="text-center py-5 d-none">
+    <div class="spinner-border" style="color:var(--accent);width:3rem;height:3rem;"></div>
+    <div class="mt-3 fw-semibold" style="color:var(--muted);">Generating forecast…</div>
+  </div>
+
+  <!-- Results -->
+  <div id="forecastResults" class="d-none fade-in">
+
+    <!-- Country summary -->
+    <div class="row g-3 mb-3" id="forecastKPIs"></div>
+
+    <!-- Main forecast chart -->
+    <div class="glass-card p-4 mb-3">
+      <div class="d-flex align-items-start justify-content-between flex-wrap gap-2 mb-3">
+        <div class="section-title mb-0">
+          <i class="bi bi-bar-chart-line"></i>
+          <span id="forecastChartTitle">Debt/GDP Forecast</span>
+        </div>
+        <div class="d-flex gap-3" style="font-size:.8rem;font-weight:600;">
+          <span style="color:#6366f1;">── Historical</span>
+          <span style="color:#94a3b8;border-top:2px dashed #94a3b8;padding-top:3px;">── Fitted</span>
+          <span style="color:#fbbf24;">── Forecast</span>
+        </div>
+      </div>
+      <canvas id="forecastChart" style="max-height:320px;"></canvas>
+    </div>
+
+    <!-- Forecast risk table -->
+    <div class="row g-3">
+      <div class="col-md-6">
+        <div class="glass-card p-4 h-100">
+          <div class="section-title"><i class="bi bi-calendar3"></i>Yearly Forecast</div>
+          <div class="table-responsive">
+            <table class="table table-dark-custom table-hover align-middle mb-0">
+              <thead>
+                <tr>
+                  <th>Year</th><th>Projected Debt/GDP</th><th>Risk Level</th>
+                </tr>
+              </thead>
+              <tbody id="forecastTableBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-md-6">
+        <div class="glass-card p-4 h-100">
+          <div class="section-title"><i class="bi bi-info-circle"></i>Model Information</div>
+
+          <div class="mb-3">
+            <div style="font-size:.78rem;color:var(--muted);text-transform:uppercase;
+                        letter-spacing:.6px;font-weight:700;margin-bottom:8px;">Method</div>
+            <div style="font-size:.9rem;line-height:1.6;">
+              <strong>Polynomial Regression (degree 2)</strong> fitted on historical
+              Debt/GDP values. Future years are extrapolated and clamped to [0%, 250%].
+            </div>
+          </div>
+
+          <div class="mb-3">
+            <div style="font-size:.78rem;color:var(--muted);text-transform:uppercase;
+                        letter-spacing:.6px;font-weight:700;margin-bottom:8px;">
+              Model Fit (R²)
+            </div>
+            <div class="d-flex align-items-center gap-2">
+              <div style="flex:1;height:10px;background:rgba(255,255,255,0.07);border-radius:20px;overflow:hidden;">
+                <div id="r2Bar" style="height:100%;background:var(--accent);
+                                       border-radius:20px;transition:width .8s ease;width:0;"></div>
+              </div>
+              <span id="r2Score" class="fw-bold" style="color:var(--accent);min-width:40px;text-align:right;"></span>
+            </div>
+          </div>
+
+          <div class="alert alert-warning mt-3 mb-0" style="font-size:.82rem;">
+            <i class="bi bi-exclamation-triangle me-1"></i>
+            <strong>Disclaimer:</strong> These projections are based on historical trends
+            and do not account for structural breaks, policy changes, or external shocks.
+            Use for indicative purposes only.
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /forecastResults -->
+
+  <!-- Empty state -->
+  <div id="emptyForecast" class="glass-card p-5 text-center">
+    <i class="bi bi-graph-up-arrow fs-1 mb-3 d-block" style="color:var(--accent);opacity:.5;"></i>
+    <h5 class="fw-bold mb-2">No Forecast Yet</h5>
+    <p style="color:var(--muted);font-size:.9rem;">
+      Select a country and click <strong>Generate Forecast</strong> to project future Debt/GDP risk.
+    </p>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+Chart.defaults.color       = '#94a3b8';
+Chart.defaults.borderColor = 'rgba(255,255,255,0.06)';
+Chart.defaults.font.family = 'Inter';
+
+let fChart = null;
+
+function setCountry(name) {
+  const sel = document.getElementById('forecastCountry');
+  Array.from(sel.options).forEach(o => { o.selected = o.value === name; });
+}
+
+async function runForecast() {
+  const country = document.getElementById('forecastCountry').value;
+  const years   = document.getElementById('yearsRange').value;
+
+  if (!country) {
+    document.getElementById('forecastError').textContent = 'Please select a country.';
+    document.getElementById('forecastError').classList.remove('d-none');
+    return;
+  }
+
+  document.getElementById('forecastError').classList.add('d-none');
+  document.getElementById('emptyForecast').classList.add('d-none');
+  document.getElementById('forecastResults').classList.add('d-none');
+  document.getElementById('forecastLoading').classList.remove('d-none');
+
+  const data = await fetch(`/api/forecast/${encodeURIComponent(country)}?years=${years}`)
+                       .then(r => r.json());
+
+  document.getElementById('forecastLoading').classList.add('d-none');
+
+  if (data.error) {
+    document.getElementById('forecastError').textContent = data.error;
+    document.getElementById('forecastError').classList.remove('d-none');
+    document.getElementById('emptyForecast').classList.remove('d-none');
+    return;
+  }
+
+  renderForecast(data);
+  document.getElementById('forecastResults').classList.remove('d-none');
+}
+
+function renderForecast(d) {
+  /* ── KPI row ──────────────────────────────────────────────────── */
+  const lastForecastRisk = d.forecast_risk[d.forecast_risk.length - 1];
+  const riskColor = { Low:'var(--low)', Medium:'var(--medium)', High:'var(--high)' };
+
+  document.getElementById('forecastKPIs').innerHTML = [
+    { val: d.country,            label:'Country',           color:'#818cf8' },
+    { val: d.last_actual_year,   label:'Last Data Year',    color:'#94a3b8' },
+    { val: d.last_actual_debt+'%',label:'Last Debt/GDP',    color:'var(--medium)' },
+    { val: d.forecast_debt[d.forecast_debt.length-1].toFixed(1)+'%',
+      label:`Projected (${d.forecast_years[d.forecast_years.length-1]})`, color:riskColor[lastForecastRisk] },
+    { val: `<span class="risk-pill ${lastForecastRisk.toLowerCase()}">● ${lastForecastRisk}</span>`,
+      label:'Projected Risk',    color:riskColor[lastForecastRisk], html:true },
+  ].map(k => `
+    <div class="col-6 col-md-4 col-lg">
+      <div class="glass-card kpi-card">
+        <div class="kpi-value" style="color:${k.color};font-size:1.3rem;">
+          ${k.html ? k.val : k.val}
+        </div>
+        <div class="kpi-label">${k.label}</div>
+      </div>
+    </div>
+  `).join('');
+
+  /* ── Chart ────────────────────────────────────────────────────── */
+  document.getElementById('forecastChartTitle').textContent =
+    `${d.country} — Debt/GDP Forecast to ${d.forecast_years[d.forecast_years.length-1]}`;
+
+  const allYears  = [...d.hist_years, ...d.forecast_years];
+  const histData  = [...d.hist_debt,  ...Array(d.forecast_years.length).fill(null)];
+  const fittedData= [...d.fitted_debt,...Array(d.forecast_years.length).fill(null)];
+  const foreData  = [...Array(d.hist_years.length).fill(null), ...d.forecast_debt];
+  // Connect the last historical point to the first forecast point
+  foreData[d.hist_years.length - 1] = d.hist_debt[d.hist_debt.length - 1];
+
+  const ctx = document.getElementById('forecastChart').getContext('2d');
+  if (fChart) fChart.destroy();
+
+  fChart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: allYears,
+      datasets: [
+        { label:'Historical',  data:histData,
+          borderColor:'#6366f1', backgroundColor:'rgba(99,102,241,0.12)',
+          borderWidth:2.5, pointRadius:0, tension:0.3, fill:true, spanGaps:false },
+        { label:'Fitted Trend', data:fittedData,
+          borderColor:'#94a3b8', borderDash:[5,4],
+          borderWidth:1.5, pointRadius:0, tension:0.3, fill:false, spanGaps:false },
+        { label:'Forecast', data:foreData,
+          borderColor:'#fbbf24', backgroundColor:'rgba(251,191,36,0.1)',
+          borderWidth:2.5, borderDash:[7,3],
+          pointRadius:4, pointBackgroundColor:'#fbbf24',
+          tension:0.3, fill:true, spanGaps:false },
+      ]
+    },
+    options: {
+      responsive:true,
+      interaction:{ mode:'index', intersect:false },
+      plugins:{
+        legend:{ position:'top', labels:{ boxWidth:12, borderRadius:4 } },
+        tooltip:{
+          callbacks:{
+            label: ctx => {
+              const v = ctx.raw;
+              return v != null ? ` ${ctx.dataset.label}: ${v.toFixed(1)}%` : null;
+            }
+          }
+        }
+      },
+      scales:{
+        x:{ grid:{ color:'rgba(255,255,255,0.06)' } },
+        y:{ grid:{ color:'rgba(255,255,255,0.06)' },
+            ticks:{ callback: v => v+'%' },
+            title:{ display:true, text:'Debt / GDP (%)' } }
+      }
+    }
+  });
+
+  /* ── Forecast table ───────────────────────────────────────────── */
+  document.getElementById('forecastTableBody').innerHTML =
+    d.forecast_years.map((yr, i) => {
+      const debt = d.forecast_debt[i].toFixed(1);
+      const risk = d.forecast_risk[i];
+      return `<tr>
+        <td class="fw-semibold">${yr}</td>
+        <td style="font-weight:700;color:${risk==='High'?'var(--high)':risk==='Medium'?'var(--medium)':'var(--low)'};">
+          ${debt}%
+        </td>
+        <td><span class="risk-pill ${risk.toLowerCase()}">● ${risk}</span></td>
+      </tr>`;
+    }).join('');
+
+  /* ── R² bar ───────────────────────────────────────────────────── */
+  const r2 = d.r2_score;
+  document.getElementById('r2Score').textContent = r2.toFixed(3);
+  setTimeout(() => {
+    document.getElementById('r2Bar').style.width = (r2 * 100) + '%';
+  }, 200);
+}
+</script>
+{% endblock %}

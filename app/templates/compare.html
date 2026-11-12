@@ -1,0 +1,244 @@
+{% extends "base.html" %}
+{% block title %}EcoSight — Country Comparison{% endblock %}
+{% block meta_desc %}Compare sovereign debt risk indicators across multiple countries side by side.{% endblock %}
+
+{% block content %}
+<div class="container-xl py-4">
+
+  <!-- Header -->
+  <div class="mb-4">
+    <h1 class="fw-bold mb-1" style="font-size:1.5rem;">
+      <i class="bi bi-arrow-left-right me-2" style="color:var(--accent);"></i>Country Comparison
+    </h1>
+    <p style="color:var(--muted);font-size:.9rem;">
+      Select up to 5 countries to compare their debt, GDP growth, and inflation trajectories.
+    </p>
+  </div>
+
+  <!-- Selector -->
+  <div class="glass-card p-4 mb-4">
+    <div class="row g-3 align-items-end">
+      <div class="col-md-8">
+        <label class="form-label">Select Countries (up to 5)</label>
+        <select id="countrySelect" class="form-select" multiple size="6">
+          {% for c in countries %}
+          <option value="{{ c }}">{{ c }}</option>
+          {% endfor %}
+        </select>
+        <div class="mt-2" style="font-size:.78rem;color:var(--muted);">
+          Hold <kbd style="background:rgba(255,255,255,0.1);border:1px solid var(--border);padding:1px 5px;border-radius:4px;">Ctrl</kbd>
+          / <kbd style="background:rgba(255,255,255,0.1);border:1px solid var(--border);padding:1px 5px;border-radius:4px;">Cmd</kbd> to select multiple.
+        </div>
+      </div>
+      <div class="col-md-4 d-flex flex-column gap-2">
+        <!-- Quick presets -->
+        <div class="form-label mb-1">Quick Presets</div>
+        <button class="btn btn-outline-accent btn-sm" onclick="setPreset(['Greece','Japan','Italy'])">
+          <i class="bi bi-globe-europe-africa me-1"></i> High-Debt Europe + Japan
+        </button>
+        <button class="btn btn-outline-accent btn-sm" onclick="setPreset(['Brazil','Argentina','Colombia'])">
+          <i class="bi bi-globe-americas me-1"></i> Latin America
+        </button>
+        <button class="btn btn-outline-accent btn-sm" onclick="setPreset(['China','India','Indonesia'])">
+          <i class="bi bi-globe-asia-australia me-1"></i> Emerging Asia
+        </button>
+        <button class="btn btn-accent mt-2" onclick="runComparison()">
+          <i class="bi bi-arrow-repeat me-2"></i>Compare
+        </button>
+      </div>
+    </div>
+
+    <!-- Selected chips -->
+    <div id="selectedChips" class="d-flex flex-wrap gap-2 mt-3"></div>
+  </div>
+
+  <!-- Error -->
+  <div id="compareError" class="alert alert-danger d-none"></div>
+
+  <!-- Results -->
+  <div id="compareResults" class="d-none fade-in">
+
+    <!-- Summary table -->
+    <div class="glass-card p-4 mb-3">
+      <div class="section-title"><i class="bi bi-table"></i>Summary Statistics</div>
+      <div class="table-responsive">
+        <table class="table table-dark-custom table-hover align-middle mb-0">
+          <thead>
+            <tr>
+              <th>Country</th><th>Avg Debt/GDP</th><th>Avg GDP Growth</th>
+              <th>Avg Inflation</th><th>Data Points</th><th>Latest Risk</th>
+            </tr>
+          </thead>
+          <tbody id="summaryTableBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Charts row -->
+    <div class="row g-3 mb-3">
+      <div class="col-lg-6">
+        <div class="glass-card p-4 h-100">
+          <div class="section-title"><i class="bi bi-graph-up"></i>Debt/GDP Over Time</div>
+          <canvas id="debtCompareChart"></canvas>
+        </div>
+      </div>
+      <div class="col-lg-6">
+        <div class="glass-card p-4 h-100">
+          <div class="section-title"><i class="bi bi-speedometer2"></i>GDP Growth Over Time</div>
+          <canvas id="gdpCompareChart"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- Inflation chart -->
+    <div class="row g-3">
+      <div class="col-12">
+        <div class="glass-card p-4">
+          <div class="section-title"><i class="bi bi-thermometer-half"></i>Inflation Over Time</div>
+          <canvas id="inflCompareChart" style="max-height:220px;"></canvas>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /compareResults -->
+
+  <!-- Empty state -->
+  <div id="emptyState" class="glass-card p-5 text-center">
+    <i class="bi bi-arrow-left-right fs-1 mb-3 d-block" style="color:var(--accent);opacity:.5;"></i>
+    <h5 class="fw-bold mb-2">Select Countries to Compare</h5>
+    <p style="color:var(--muted);font-size:.9rem;">
+      Choose 2–5 countries from the list above, then click <strong>Compare</strong>.
+    </p>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+/* ── Palette for up to 5 countries ─────────────────────────────────── */
+const PALETTE = ['#6366f1','#34d399','#fbbf24','#ef4444','#a855f7'];
+const C_GRID  = 'rgba(255,255,255,0.06)';
+
+Chart.defaults.color       = '#94a3b8';
+Chart.defaults.borderColor = C_GRID;
+Chart.defaults.font.family = 'Inter';
+
+let debtChart, gdpChart, inflChart;
+
+/* ── Preset setter ──────────────────────────────────────────────────── */
+function setPreset(names) {
+  const sel = document.getElementById('countrySelect');
+  Array.from(sel.options).forEach(o => {
+    o.selected = names.some(n => n.toLowerCase() === o.value.toLowerCase());
+  });
+  updateChips();
+}
+
+/* ── Selected chips ─────────────────────────────────────────────────── */
+function updateChips() {
+  const sel    = document.getElementById('countrySelect');
+  const chosen = Array.from(sel.selectedOptions).map(o => o.value).slice(0, 5);
+  document.getElementById('selectedChips').innerHTML = chosen.map((c,i) =>
+    `<span class="badge rounded-pill px-3 py-2"
+           style="background:${PALETTE[i]}22;color:${PALETTE[i]};
+                  border:1px solid ${PALETTE[i]}44;font-size:.8rem;">
+       ● ${c}
+       <i class="bi bi-x ms-1" style="cursor:pointer;" onclick="deselect('${c}')"></i>
+     </span>`
+  ).join('');
+}
+
+function deselect(name) {
+  const sel = document.getElementById('countrySelect');
+  Array.from(sel.options).forEach(o => { if (o.value === name) o.selected = false; });
+  updateChips();
+}
+
+document.getElementById('countrySelect').addEventListener('change', updateChips);
+
+/* ── Build chart ─────────────────────────────────────────────────────── */
+function makeChart(id, datasets, ylabel) {
+  const ctx = document.getElementById(id).getContext('2d');
+  // Collect all years
+  const allYears = [...new Set(datasets.flatMap(d => d.years))].sort();
+  const dsArr = datasets.map((d, i) => ({
+    label: d.name, data: allYears.map(y => {
+      const idx = d.years.indexOf(y);
+      return idx >= 0 ? d.vals[idx] : null;
+    }),
+    borderColor: PALETTE[i], backgroundColor: PALETTE[i]+'22',
+    borderWidth: 2.5, pointRadius: 0, tension: 0.4,
+    fill: false, spanGaps: true,
+  }));
+  return new Chart(ctx, {
+    type: 'line',
+    data: { labels: allYears, datasets: dsArr },
+    options: {
+      responsive: true,
+      interaction: { mode: 'index', intersect: false },
+      plugins: { legend: { position: 'top', labels: { boxWidth: 10 } } },
+      scales: {
+        x: { grid: { color: C_GRID } },
+        y: { grid: { color: C_GRID }, ticks: { callback: v => v + '%' },
+             title: { display: true, text: ylabel } },
+      }
+    }
+  });
+}
+
+/* ── Run comparison ─────────────────────────────────────────────────── */
+async function runComparison() {
+  const sel    = document.getElementById('countrySelect');
+  const chosen = Array.from(sel.selectedOptions).map(o => o.value).slice(0, 5);
+
+  if (chosen.length < 2) {
+    document.getElementById('compareError').textContent = 'Please select at least 2 countries.';
+    document.getElementById('compareError').classList.remove('d-none');
+    return;
+  }
+  document.getElementById('compareError').classList.add('d-none');
+  document.getElementById('emptyState').classList.add('d-none');
+
+  const res  = await fetch(`/api/compare?countries=${encodeURIComponent(chosen.join(','))}`).then(r=>r.json());
+  const keys = Object.keys(res);
+  if (!keys.length) {
+    document.getElementById('compareError').textContent = 'No data found for selected countries.';
+    document.getElementById('compareError').classList.remove('d-none');
+    return;
+  }
+
+  // Summary table
+  document.getElementById('summaryTableBody').innerHTML = keys.map((c,i) => {
+    const d  = res[c];
+    const lr = d.latest_risk.toLowerCase();
+    return `<tr>
+      <td><span style="color:${PALETTE[i]};font-weight:700;">● ${c}</span></td>
+      <td style="color:var(--medium);font-weight:700;">${d.avg_debt}%</td>
+      <td style="color:${d.avg_gdp<0?'var(--high)':'var(--low)'};">
+        ${d.avg_gdp>0?'+':''}${d.avg_gdp}%</td>
+      <td>${(d.inflation||[]).length ? (d.inflation.reduce((a,b)=>a+b,0)/d.inflation.length).toFixed(1)+'%' : '—'}</td>
+      <td style="color:var(--muted);">${d.years.length}</td>
+      <td><span class="risk-pill ${lr}">● ${d.latest_risk}</span></td>
+    </tr>`;
+  }).join('');
+
+  // Destroy old charts
+  [debtChart, gdpChart, inflChart].forEach(c => c && c.destroy());
+
+  const ds = keys.map(c => ({
+    name: c, years: res[c].years,
+    debt: res[c].debt, gdp: res[c].gdp, infl: res[c].inflation,
+  }));
+
+  debtChart = makeChart('debtCompareChart',
+    ds.map(d=>({name:d.name, years:d.years, vals:d.debt})), 'Debt/GDP (%)');
+  gdpChart  = makeChart('gdpCompareChart',
+    ds.map(d=>({name:d.name, years:d.years, vals:d.gdp})),  'GDP Growth (%)');
+  inflChart = makeChart('inflCompareChart',
+    ds.map(d=>({name:d.name, years:d.years, vals:d.infl})), 'Inflation (%)');
+
+  document.getElementById('compareResults').classList.remove('d-none');
+}
+</script>
+{% endblock %}

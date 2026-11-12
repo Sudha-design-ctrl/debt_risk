@@ -1,0 +1,389 @@
+{% extends "base.html" %}
+{% block title %}EcoSight — Analytics Dashboard{% endblock %}
+{% block meta_desc %}Interactive analytics dashboard for sovereign debt risk across 100+ countries.{% endblock %}
+
+{% block content %}
+<div class="container-xl py-4">
+
+  <!-- Page header -->
+  <div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-3">
+    <div>
+      <h1 class="fw-bold mb-1" style="font-size:1.5rem;">
+        <i class="bi bi-bar-chart-line me-2" style="color:var(--accent);"></i>Analytics Dashboard
+      </h1>
+      <span style="color:var(--muted);font-size:.85rem;">
+        Real-time insights across <span id="recordCount" style="color:var(--text);font-weight:600;">—</span> records
+      </span>
+    </div>
+    <div class="search-box position-relative">
+      <i class="bi bi-search position-absolute" style="left:12px;top:50%;transform:translateY(-50%);color:var(--muted);pointer-events:none;"></i>
+      <input type="text" id="countrySearch" placeholder="Search country…"
+             class="form-control ps-5" style="width:240px;" autocomplete="off"/>
+      <div id="searchDropdown"
+           style="position:absolute;top:calc(100% + 6px);left:0;right:0;
+                  background:#111827;border:1px solid var(--border);
+                  border-radius:10px;max-height:200px;overflow-y:auto;
+                  display:none;z-index:200;">
+      </div>
+    </div>
+  </div>
+
+  <!-- ── KPI Cards ── -->
+  <div class="row g-3 mb-4" id="kpiRow">
+    {% for _ in range(6) %}
+    <div class="col-6 col-md-4 col-lg-2">
+      <div class="glass-card kpi-card"><div class="skeleton" style="height:80px;"></div></div>
+    </div>
+    {% endfor %}
+  </div>
+
+  <!-- ── Row 1: Donut + Trend Line ── -->
+  <div class="row g-3 mb-3">
+    <div class="col-md-4">
+      <div class="glass-card p-4 h-100">
+        <div class="section-title"><i class="bi bi-pie-chart-fill"></i>Risk Distribution</div>
+        <canvas id="donutChart"></canvas>
+        <div id="donutLegend" class="d-flex justify-content-center gap-3 mt-3"
+             style="font-size:.8rem;font-weight:600;"></div>
+      </div>
+    </div>
+    <div class="col-md-8">
+      <div class="glass-card p-4 h-100">
+        <div class="d-flex align-items-start justify-content-between mb-3 flex-wrap gap-2">
+          <div class="section-title mb-0"><i class="bi bi-graph-up"></i>Macro Trend Over Time</div>
+          <div class="d-flex gap-1">
+            <button class="tab-btn active" id="tab-debt"      onclick="switchTrend('debt')">Debt/GDP</button>
+            <button class="tab-btn"        id="tab-gdp"       onclick="switchTrend('gdp')">GDP Growth</button>
+            <button class="tab-btn"        id="tab-inflation" onclick="switchTrend('inflation')">Inflation</button>
+          </div>
+        </div>
+        <canvas id="trendChart"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Row 2: Stacked Bar ── -->
+  <div class="row g-3 mb-3">
+    <div class="col-12">
+      <div class="glass-card p-4">
+        <div class="section-title"><i class="bi bi-bar-chart-steps"></i>Risk Count by Year</div>
+        <canvas id="stackedBar" style="max-height:220px;"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Row 3: Scatter ── -->
+  <div class="row g-3 mb-3">
+    <div class="col-12">
+      <div class="glass-card p-4">
+        <div class="d-flex align-items-start justify-content-between flex-wrap gap-2 mb-3">
+          <div class="section-title mb-0"><i class="bi bi-scatter-chart"></i>GDP Growth vs Debt/GDP</div>
+          <div class="d-flex gap-3" style="font-size:.8rem;font-weight:600;">
+            <span style="color:var(--low);">● Low</span>
+            <span style="color:var(--medium);">● Medium</span>
+            <span style="color:var(--high);">● High</span>
+          </div>
+        </div>
+        <canvas id="scatterChart" style="max-height:260px;"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Row 4: Table + Country Panel ── -->
+  <div class="row g-3">
+    <div class="col-lg-7">
+      <div class="glass-card p-4">
+        <div class="section-title"><i class="bi bi-trophy-fill"></i>Top 15 High-Risk Countries</div>
+        <div class="table-responsive">
+          <table class="table table-dark-custom table-hover table-striped align-middle mb-0">
+            <thead>
+              <tr>
+                <th>#</th><th>Country</th><th>Avg Debt/GDP</th>
+                <th>Avg GDP</th><th>Avg Inflation</th><th>Years</th><th>Risk</th>
+              </tr>
+            </thead>
+            <tbody id="topTableBody">
+              <tr><td colspan="7" class="text-center py-4" style="color:var(--muted);">Loading…</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-lg-5">
+      <!-- Country detail -->
+      <div class="glass-card p-4 h-100" id="countryDetail" style="display:none;">
+        <div class="d-flex align-items-center mb-3">
+          <i class="bi bi-globe-americas me-2" style="color:var(--accent);"></i>
+          <span class="fw-bold" id="detailTitle">Country</span>
+          <button class="btn btn-sm ms-auto" onclick="closeDetail()"
+                  style="background:none;border:none;color:var(--muted);">
+            <i class="bi bi-x-lg"></i>
+          </button>
+        </div>
+        <canvas id="countryChart" style="max-height:200px;margin-bottom:14px;"></canvas>
+        <div class="row g-2" id="countryStats"></div>
+      </div>
+      <!-- Placeholder -->
+      <div class="glass-card p-4 h-100 d-flex flex-column align-items-center justify-content-center text-center"
+           id="noDetail">
+        <i class="bi bi-globe fs-1 mb-3" style="color:var(--muted);opacity:.4;"></i>
+        <div class="fw-semibold mb-1">Country Explorer</div>
+        <div style="font-size:.85rem;color:var(--muted);">
+          Click any row in the table or search above to view a country's historical data.
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /container -->
+{% endblock %}
+
+{% block scripts %}
+<script>
+/* ── Shared Chart.js defaults ─────────────────────────────────────────── */
+const C = { accent:'#6366f1', accent2:'#a855f7',
+            low:'#34d399', medium:'#fbbf24', high:'#ef4444',
+            muted:'#94a3b8', grid:'rgba(255,255,255,0.06)' };
+
+Chart.defaults.color       = C.muted;
+Chart.defaults.borderColor = C.grid;
+Chart.defaults.font.family = 'Inter';
+Chart.defaults.font.size   = 12;
+
+function grad(ctx, canvas, color) {
+  const g = ctx.createLinearGradient(0, 0, 0, canvas.height);
+  g.addColorStop(0, color + 'BB');
+  g.addColorStop(1, color + '00');
+  return g;
+}
+
+/* ── KPI cards ────────────────────────────────────────────────────────── */
+async function loadKPIs() {
+  const d = await fetch('/api/stats').then(r => r.json());
+  document.getElementById('recordCount').textContent = d.total_records.toLocaleString();
+
+  const cards = [
+    { icon:'bi-globe',         color:C.accent,  val: d.total_countries,    label:'Countries' },
+    { icon:'bi-table',         color:'#22d3ee', val: d.total_records.toLocaleString(), label:'Records' },
+    { icon:'bi-bank2',         color:C.medium,  val: d.avg_debt+'%',       label:'Avg Debt/GDP' },
+    { icon:'bi-graph-up',      color:C.low,     val: d.avg_gdp+'%',        label:'Avg GDP Growth' },
+    { icon:'bi-coin',          color:'#f97316', val: d.avg_inflation+'%',  label:'Avg Inflation' },
+    { icon:'bi-exclamation-triangle', color:C.high, val: d.high_risk_pct+'%', label:'High-Risk Share' },
+  ];
+
+  document.getElementById('kpiRow').innerHTML = cards.map(k => `
+    <div class="col-6 col-md-4 col-lg-2">
+      <div class="glass-card kpi-card">
+        <div class="kpi-icon" style="color:${k.color};"><i class="bi ${k.icon}"></i></div>
+        <div class="kpi-value" style="color:${k.color};">${k.val}</div>
+        <div class="kpi-label">${k.label}</div>
+      </div>
+    </div>
+  `).join('');
+}
+
+/* ── Donut ────────────────────────────────────────────────────────────── */
+async function loadDonut() {
+  const d   = await fetch('/api/risk-distribution').then(r => r.json());
+  const ctx = document.getElementById('donutChart').getContext('2d');
+  new Chart(ctx, {
+    type: 'doughnut',
+    data: {
+      labels:   d.labels,
+      datasets: [{ data: d.values,
+                   backgroundColor:[C.low, C.medium, C.high],
+                   borderColor:'#111827', borderWidth:3, hoverOffset:6 }]
+    },
+    options: { cutout:'68%', plugins:{ legend:{ display:false } } }
+  });
+  const total = d.values.reduce((a,b)=>a+b,0);
+  document.getElementById('donutLegend').innerHTML =
+    [['Low',C.low],[' Medium',C.medium],['High',C.high]]
+    .map((x,i) => `<span style="color:${x[1]};">● ${x[0]} ${d.values[i]}
+      <span style="color:var(--muted);font-weight:400;">(${(d.values[i]/total*100).toFixed(0)}%)</span></span>`)
+    .join('');
+}
+
+/* ── Trend line ───────────────────────────────────────────────────────── */
+let tData = null, tChart = null;
+async function loadTrend() {
+  tData = await fetch('/api/debt-trend').then(r => r.json());
+  renderTrend('debt');
+}
+function switchTrend(k) {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-'+k).classList.add('active');
+  renderTrend(k);
+}
+function renderTrend(k) {
+  if (!tData) return;
+  const colorMap  = { debt:C.accent, gdp:C.low, inflation:C.medium };
+  const labelMap  = { debt:'Avg Debt/GDP (%)', gdp:'Avg GDP Growth (%)', inflation:'Avg Inflation (%)' };
+  const color = colorMap[k];
+  const canvas = document.getElementById('trendChart');
+  const ctx    = canvas.getContext('2d');
+  if (tChart) tChart.destroy();
+  tChart = new Chart(ctx, {
+    type:'line',
+    data:{ labels:tData.years, datasets:[{
+      label:labelMap[k], data:tData[k],
+      borderColor:color, backgroundColor:grad(ctx, canvas, color),
+      borderWidth:2.5, pointRadius:0, tension:0.4, fill:true
+    }]},
+    options:{ responsive:true, plugins:{ legend:{display:false} },
+              scales:{ x:{grid:{color:C.grid}},
+                       y:{grid:{color:C.grid}, ticks:{callback:v=>v+'%'}} } }
+  });
+}
+
+/* ── Stacked bar ──────────────────────────────────────────────────────── */
+async function loadStackedBar() {
+  const d   = await fetch('/api/risk-by-year').then(r => r.json());
+  const ctx = document.getElementById('stackedBar').getContext('2d');
+  new Chart(ctx, {
+    type:'bar',
+    data:{ labels:d.years, datasets:[
+      { label:'Low',    data:d.low,    backgroundColor:C.low   +'cc', stack:'s' },
+      { label:'Medium', data:d.medium, backgroundColor:C.medium+'cc', stack:'s' },
+      { label:'High',   data:d.high,   backgroundColor:C.high  +'cc', stack:'s' },
+    ]},
+    options:{ responsive:true,
+              plugins:{ legend:{ position:'top', labels:{ boxWidth:10, borderRadius:4 } } },
+              scales:{ x:{grid:{display:false},stacked:true},
+                       y:{grid:{color:C.grid},stacked:true} } }
+  });
+}
+
+/* ── Scatter ──────────────────────────────────────────────────────────── */
+async function loadScatter() {
+  const raw = await fetch('/api/scatter').then(r => r.json());
+  const ctx = document.getElementById('scatterChart').getContext('2d');
+  const byRisk = { Low:[], Medium:[], High:[] };
+  raw.forEach(p => byRisk[p.risk].push({ x:p.x, y:p.y, country:p.country, year:p.year }));
+  new Chart(ctx, {
+    type:'scatter',
+    data:{ datasets:[
+      { label:'Low',    data:byRisk.Low,    backgroundColor:C.low   +'99', pointRadius:4 },
+      { label:'Medium', data:byRisk.Medium, backgroundColor:C.medium+'99', pointRadius:4 },
+      { label:'High',   data:byRisk.High,   backgroundColor:C.high  +'99', pointRadius:4 },
+    ]},
+    options:{ responsive:true, plugins:{
+      legend:{display:false},
+      tooltip:{ callbacks:{ label: c => ` ${c.raw.country} (${c.raw.year}) — GDP:${c.raw.x}%, Debt:${c.raw.y}%` } }
+    },
+    scales:{ x:{grid:{color:C.grid},title:{display:true,text:'GDP Growth (%)'}},
+             y:{grid:{color:C.grid},title:{display:true,text:'Debt/GDP (%)'}} } }
+  });
+}
+
+/* ── Top Countries Table ──────────────────────────────────────────────── */
+async function loadTable() {
+  const data = await fetch('/api/top-countries').then(r => r.json());
+  document.getElementById('topTableBody').innerHTML = data.map((r,i) => `
+    <tr style="cursor:pointer;" onclick="loadCountry('${r.Country}')">
+      <td style="color:var(--muted);font-weight:600;">${i+1}</td>
+      <td class="fw-semibold">${r.Country}</td>
+      <td style="color:var(--high);font-weight:700;">${r.avg_debt.toFixed(1)}%</td>
+      <td style="color:${r.avg_gdp<0?'var(--high)':'var(--low)'};">
+        ${r.avg_gdp>0?'+':''}${r.avg_gdp.toFixed(1)}%</td>
+      <td>${r.avg_infl.toFixed(1)}%</td>
+      <td style="color:var(--muted);">${r.years_count}</td>
+      <td><span class="risk-pill high">● High</span></td>
+    </tr>
+  `).join('');
+}
+
+/* ── Country Detail Panel ─────────────────────────────────────────────── */
+let cChart = null;
+async function loadCountry(name) {
+  document.getElementById('noDetail').style.display    = 'none';
+  document.getElementById('countryDetail').style.display = 'block';
+  document.getElementById('detailTitle').textContent   = name;
+
+  const d = await fetch(`/api/country/${encodeURIComponent(name)}`).then(r=>r.json());
+  if (d.error) return;
+
+  const canvas = document.getElementById('countryChart');
+  const ctx    = canvas.getContext('2d');
+  if (cChart) cChart.destroy();
+
+  cChart = new Chart(ctx, {
+    type:'line',
+    data:{ labels:d.years, datasets:[
+      { label:'Debt/GDP', data:d.debt, borderColor:C.medium,
+        backgroundColor:grad(ctx,canvas,C.medium),
+        borderWidth:2, pointRadius:0, tension:0.4, fill:true, yAxisID:'y' },
+      { label:'GDP Growth', data:d.gdp, borderColor:C.low,
+        borderWidth:2, pointRadius:0, tension:0.4, fill:false, yAxisID:'y2' },
+    ]},
+    options:{ responsive:true,
+              plugins:{ legend:{ position:'bottom', labels:{boxWidth:10} } },
+              scales:{ x:{grid:{color:C.grid}},
+                       y:{grid:{color:C.grid},position:'left',ticks:{callback:v=>v+'%'}},
+                       y2:{grid:{display:false},position:'right',ticks:{callback:v=>v+'%'}} } }
+  });
+
+  const lr   = d.risk[d.risk.length-1].toLowerCase();
+  const avgD = (d.debt.reduce((a,b)=>a+b,0)/d.debt.length).toFixed(1);
+  const avgG = (d.gdp.reduce((a,b)=>a+b,0)/d.gdp.length).toFixed(1);
+
+  document.getElementById('countryStats').innerHTML = [
+    ['Current Risk', `<span class="risk-pill ${lr}">● ${d.risk[d.risk.length-1]}</span>`],
+    ['Data Years',   `<strong>${d.years.length}</strong>`],
+    ['Avg Debt/GDP', `<strong style="color:var(--medium);">${avgD}%</strong>`],
+    ['Avg GDP',      `<strong style="color:${avgG<0?'var(--high)':'var(--low)'};">${avgG>0?'+':''}${avgG}%</strong>`],
+  ].map(([l,v]) => `
+    <div class="col-6">
+      <div style="background:rgba(255,255,255,0.03);border-radius:8px;padding:10px;">
+        <div style="font-size:.7rem;color:var(--muted);font-weight:600;margin-bottom:4px;">${l}</div>
+        <div>${v}</div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function closeDetail() {
+  document.getElementById('countryDetail').style.display = 'none';
+  document.getElementById('noDetail').style.display      = 'flex';
+}
+
+/* ── Country Search ───────────────────────────────────────────────────── */
+async function initSearch() {
+  const list  = await fetch('/api/countries').then(r => r.json());
+  const input = document.getElementById('countrySearch');
+  const drop  = document.getElementById('searchDropdown');
+
+  input.addEventListener('input', () => {
+    const q = input.value.trim().toLowerCase();
+    if (!q) { drop.style.display='none'; return; }
+    const hits = list.filter(c => c.toLowerCase().includes(q)).slice(0, 8);
+    if (!hits.length) { drop.style.display='none'; return; }
+    drop.innerHTML = hits.map(c =>
+      `<div style="padding:9px 14px;cursor:pointer;font-size:.85rem;"
+            onmousedown="pickCountry('${c}')">${c}</div>`).join('');
+    drop.style.display = 'block';
+  });
+  document.addEventListener('click', e => {
+    if (!e.target.closest('.search-box')) drop.style.display = 'none';
+  });
+}
+
+function pickCountry(name) {
+  document.getElementById('countrySearch').value = name;
+  document.getElementById('searchDropdown').style.display = 'none';
+  loadCountry(name);
+}
+
+/* ── Tab button style helper ──────────────────────────────────────────── */
+document.querySelectorAll && document.querySelectorAll('.tab-btn').forEach(b => {
+  b.style.cssText = 'padding:5px 12px;border-radius:8px;font-size:12px;font-weight:600;' +
+    'border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;' +
+    'transition:all .2s;font-family:inherit;';
+});
+
+/* ── Boot ─────────────────────────────────────────────────────────────── */
+Promise.all([loadKPIs(), loadDonut(), loadTrend(), loadStackedBar(), loadScatter(),
+             loadTable(), initSearch()]);
+</script>
+{% endblock %}
